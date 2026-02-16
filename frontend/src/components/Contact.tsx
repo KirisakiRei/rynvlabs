@@ -9,7 +9,7 @@ const categories = [
   { id: "academy", label: "Academy / Riset", icon: FlaskConical, waLabel: "Research & Academy" },
 ];
 
-const WHATSAPP_NUMBER = "6281234567890"; // Replace with actual number
+const WHATSAPP_NUMBER = "6283192801660"; // Replace with actual number
 
 const Contact = () => {
   const [selected, setSelected] = useState<string | null>(null);

@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ProjectDetail from "./pages/ProjectDetail";
 import ProductDetail from "./pages/ProductDetail";
+import Projects from "./pages/Projects";
 import Academy from "./pages/Academy";
 import AcademyDetail from "./pages/AcademyDetail";
 
@@ -31,6 +32,7 @@ const App = () => (
         <ScrollToTop />
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/products/smart-scales" element={<ProductDetail />} />
           <Route path="/academy" element={<Academy />} />

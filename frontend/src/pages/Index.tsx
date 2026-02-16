@@ -4,6 +4,7 @@ import TechTicker from "@/components/TechTicker";
 import Services from "@/components/Services";
 import Product from "@/components/Product";
 import Portfolio from "@/components/Portfolio";
+import AcademyShowcase from "@/components/AcademyShowcase";
 import Process from "@/components/Process";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
@@ -18,6 +19,7 @@ const Index = () => {
         <Services />
         <Product />
         <Portfolio />
+        <AcademyShowcase />
         <Process />
         <Contact />
       </main>

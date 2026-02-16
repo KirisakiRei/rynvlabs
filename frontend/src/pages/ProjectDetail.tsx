@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { projects } from "@/data/projects";
@@ -7,7 +7,18 @@ import Footer from "@/components/Footer";
 
 const ProjectDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const project = projects.find((p) => p.id === id);
+
+  const relatedProjects = project
+    ? projects
+        .filter(
+          (p) =>
+            p.id !== project.id &&
+            p.techStack.some((t) => project.techStack.includes(t))
+        )
+        .slice(0, 3)
+    : [];
 
   if (!project) {
     return (
@@ -139,6 +150,55 @@ const ProjectDetail = () => {
               ))}
             </div>
           </motion.div>
+
+          {/* Related Projects */}
+          {relatedProjects.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-24 border-t border-border pt-24"
+            >
+              <h3 className="mb-8 font-heading text-2xl font-bold sm:text-3xl">
+                Proyek Terkait
+              </h3>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {relatedProjects.map((p, i) => (
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: i * 0.08 }}
+                    onClick={() => navigate(`/projects/${p.id}`)}
+                    className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all duration-300 hover:border-primary"
+                  >
+                    <div className="h-48 overflow-hidden">
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                    <div className="p-5">
+                      <h3 className="mb-2 font-heading text-lg font-semibold">{p.title}</h3>
+                      <p className="mb-4 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {p.techStack.map((t) => (
+                          <span
+                            key={t}
+                            className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
       </main>
       <Footer />
