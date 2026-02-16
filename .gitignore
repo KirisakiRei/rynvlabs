@@ -8,6 +8,10 @@ dist/
 build/
 **/build/
 
+# Lovable artifacts
+.lovable/
+**/.lovable/
+
 # Environment variables
 .env
 .env.local
