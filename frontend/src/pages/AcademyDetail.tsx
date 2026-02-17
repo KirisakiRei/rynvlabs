@@ -1,15 +1,36 @@
 import { useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
-import { academyProjects } from "@/data/academy";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import publicApi, { getImageUrl } from "@/lib/publicApi";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const AcademyDetail = () => {
-  const { id } = useParams();
-  const project = academyProjects.find((p) => p.id === id);
+  const { slug } = useParams();
+  const [project, setProject] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [modalImage, setModalImage] = useState<string | null>(null);
 
-  if (!project) {
+  useEffect(() => {
+    setLoading(true);
+    publicApi.get(`/academy/${slug}`)
+      .then((res) => setProject(res.data.data ?? res.data))
+      .catch(() => setNotFound(true))
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (notFound || !project) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
         <div className="text-center">
@@ -20,13 +41,15 @@ const AcademyDetail = () => {
     );
   }
 
+  const techStack = Array.isArray(project.techStack) ? project.techStack : [];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <main className="pt-20">
         {/* Hero */}
         <div className="relative h-[40vh] min-h-[350px] overflow-hidden">
-          <img src={project.image} alt={project.title} className="h-full w-full object-cover" />
+          <img src={getImageUrl(project.image)} alt={project.title || ''} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 px-6 pb-12">
             <div className="mx-auto max-w-4xl">
@@ -41,7 +64,7 @@ const AcademyDetail = () => {
                 {project.title}
               </motion.h1>
               <div className="mt-3 flex flex-wrap gap-2">
-                {project.techStack.map((t) => (
+                {techStack.map((t: string) => (
                   <span key={t} className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground">
                     {t}
                   </span>
@@ -62,7 +85,7 @@ const AcademyDetail = () => {
             <h3 className="mb-3 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
               Abstrak
             </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">{project.abstract}</p>
+            <div className="text-sm leading-relaxed text-muted-foreground" dangerouslySetInnerHTML={{ __html: project.abstract || '' }} />
           </motion.div>
 
           {/* Methodology */}
@@ -75,23 +98,25 @@ const AcademyDetail = () => {
             <h3 className="mb-3 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
               Metodologi
             </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">{project.methodology}</p>
+            <div className="text-sm leading-relaxed text-muted-foreground" dangerouslySetInnerHTML={{ __html: project.methodology || '' }} />
           </motion.div>
 
           {/* Wiring Diagram */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-12"
-          >
-            <h3 className="mb-4 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
-              Diagram Rangkaian
-            </h3>
-            <div className="overflow-hidden rounded-lg border border-border">
-              <img src={project.wiringDiagram} alt="Wiring Diagram" className="w-full object-cover" />
-            </div>
-          </motion.div>
+          {project.wiringDiagram && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-12"
+            >
+              <h3 className="mb-4 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
+                Diagram Rangkaian
+              </h3>
+              <div className="overflow-hidden rounded-lg border border-border">
+                <img src={getImageUrl(project.wiringDiagram)} alt="Wiring Diagram" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} className="w-full object-cover" />
+              </div>
+            </motion.div>
+          )}
 
           {/* Results */}
           <motion.div
@@ -104,10 +129,48 @@ const AcademyDetail = () => {
               Hasil Pengujian
             </h3>
             <div className="rounded-lg border border-border bg-secondary p-6">
-              <p className="text-sm leading-relaxed text-muted-foreground">{project.results}</p>
+              <div className="text-sm leading-relaxed text-muted-foreground" dangerouslySetInnerHTML={{ __html: project.results || '' }} />
             </div>
           </motion.div>
+
+          {/* Gallery */}
+          {Array.isArray(project.gallery) && project.gallery.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-12"
+            >
+              <h3 className="mb-6 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
+                Galeri
+              </h3>
+              <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
+                {project.gallery.map((img: string, i: number) => (
+                  <div 
+                    key={i} 
+                    className="mb-4 overflow-hidden rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => setModalImage(img)}
+                  >
+                    <img src={getImageUrl(img)} alt={`${project.title} ${i + 1}`} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} className="w-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
+
+        {/* Image Modal */}
+        <Dialog open={modalImage !== null} onOpenChange={(open) => !open && setModalImage(null)}>
+          <DialogContent className="max-w-7xl w-full p-0 overflow-hidden">
+            {modalImage && (
+              <img 
+                src={getImageUrl(modalImage)} 
+                alt="Gallery preview" 
+                className="w-full h-auto max-h-[90vh] object-contain"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
       <Footer />
     </div>

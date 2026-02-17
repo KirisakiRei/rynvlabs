@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Admin
+// ============================================
+model Admin {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+// ============================================
+// Projects
+// ============================================
+model Project {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  description String   @db.Text
+  category    String
+  image       String?
+  techStack   Json     @default("[]")
+  challenge   String   @db.Text
+  solution    String   @db.Text
+  deepDive    String   @db.Text
+  gallery     Json     @default("[]")
+  stats       Json     @default("[]")
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("projects")
+}
+
+// ============================================
+// Academy Projects (Tugas Akhir)
+// ============================================
+model AcademyProject {
+  id             Int      @id @default(autoincrement())
+  title          String
+  slug           String   @unique
+  description    String   @db.Text
+  techStack      Json     @default("[]")
+  abstract       String   @db.Text
+  methodology    String   @db.Text
+  results        String   @db.Text
+  image          String?
+  wiringDiagram  String?
+  gallery        Json     @default("[]")
+  year           Int
+  sortOrder      Int      @default(0)
+  isPublished    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("academy_projects")
+}
+
+// ============================================
+// Products
+// ============================================
+model Product {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  description String   @db.Text
+  category    String?
+  image       String?
+  features    Json     @default("[]")
+  specs       String   @db.Text
+  stats       Json     @default("[]")
+  background  String   @db.Text
+  solution    String   @db.Text
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("products")
+}
+
+// ============================================
+// Categories
+// ============================================
+enum CategoryType {
+  PROJECT
+  ACADEMY
+  PRODUCT
+}
+
+model Category {
+  id        Int          @id @default(autoincrement())
+  name      String
+  slug      String       @unique
+  type      CategoryType
+  color     String?
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+
+  @@map("categories")
+}
+
+// ============================================
+// Tech Stack (Master Data)
+// ============================================
+model TechStack {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  icon      String?
+  color     String?
+  createdAt DateTime @default(now())
+
+  @@map("tech_stacks")
+}
+
+// ============================================
+// Landing Page Sections
+// ============================================
+model LandingSection {
+  id         Int      @id @default(autoincrement())
+  sectionKey String   @unique
+  title      String
+  subtitle   String?
+  content    Json     @default("{}")
+  isVisible  Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@map("landing_sections")
+}
+
+// ============================================
+// Site Settings
+// ============================================
+model SiteSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+// ============================================
+// Media Library
+// ============================================
+model Media {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  path         String
+  createdAt    DateTime @default(now())
+
+  @@map("media")
+}

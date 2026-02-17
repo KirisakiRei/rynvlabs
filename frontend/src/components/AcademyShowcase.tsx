@@ -1,14 +1,26 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
-import { academyProjects } from "@/data/academy";
+import { ArrowRight, Loader2 } from "lucide-react";
+import publicApi, { getImageUrl } from "@/lib/publicApi";
 
 const AcademyShowcase = () => {
   const navigate = useNavigate();
+  const [latestProjects, setLatestProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const latestProjects = [...academyProjects]
-    .sort((a, b) => b.year - a.year)
-    .slice(0, 3);
+  useEffect(() => {
+    publicApi.get('/academy')
+      .then((res) => {
+        const all = res.data.data ?? res.data;
+        const sorted = [...all].sort((a: any, b: any) => (b.year ?? 0) - (a.year ?? 0)).slice(0, 3);
+        setLatestProjects(sorted);
+      })
+      .catch((err) => {
+        console.error('[AcademyShowcase] Failed to load projects:', err.message);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <section id="academy-showcase" className="px-6 py-24">
@@ -33,21 +45,27 @@ const AcademyShowcase = () => {
           Kolaborasi riset dan proyek tugas akhir bersama mahasiswa dan institusi akademik.
         </motion.p>
 
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          </div>
+        ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {latestProjects.map((p, i) => (
+          {latestProjects.map((p: any, i: number) => (
             <motion.div
               key={p.id}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              onClick={() => navigate(`/academy/${p.id}`)}
+              onClick={() => navigate(`/academy/${p.slug}`)}
               className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all duration-300 hover:border-primary"
             >
               <div className="relative h-48 overflow-hidden">
                 <img
-                  src={p.image}
-                  alt={p.title}
+                  src={getImageUrl(p.image)}
+                  alt={p.title || ''}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <span className="absolute right-3 top-3 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-foreground backdrop-blur-sm">
@@ -58,7 +76,7 @@ const AcademyShowcase = () => {
                 <h3 className="mb-2 font-heading text-lg font-semibold">{p.title}</h3>
                 <p className="mb-4 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {p.techStack.map((t) => (
+                  {(Array.isArray(p.techStack) ? p.techStack : []).map((t: string) => (
                     <span
                       key={t}
                       className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground"
@@ -74,6 +92,7 @@ const AcademyShowcase = () => {
             </motion.div>
           ))}
         </div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

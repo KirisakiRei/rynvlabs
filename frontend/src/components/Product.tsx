@@ -1,28 +1,41 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Wifi, Cloud, Activity, Gauge } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import productImage from "@/assets/product-smart-scale.jpg";
-
-const features = [
-  { icon: Gauge, label: "High Precision", desc: "Akurasi ±0.1g dengan load cells terkalibrasi" },
-  { icon: Cloud, label: "Cloud Integration", desc: "Sinkronisasi data real-time via MQTT/WebSocket" },
-  { icon: Activity, label: "Live Monitoring", desc: "Dashboard dengan trends dan alerts" },
-  { icon: Wifi, label: "Wireless", desc: "WiFi-enabled dengan OTA firmware updates" },
-];
-
-const specs = [
-  "// Technical Specifications",
-  'Conn: MQTT/WebSocket',
-  'Power: 12V DC',
-  'Material: Aluminum Alloy',
-  'Latency: <50ms',
-  'Precision: ±0.1g',
-  'Protocol: IEEE 802.11 b/g/n',
-];
+import publicApi, { getImageUrl } from "@/lib/publicApi";
+import DynamicIcon from "@/components/DynamicIcon";
 
 const Product = () => {
   const navigate = useNavigate();
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    publicApi.get('/products')
+      .then((res) => {
+        const products = res.data.data ?? res.data;
+        if (products.length > 0) setProduct(products[0]);
+      })
+      .catch((err) => {
+        console.error('[Product] Failed to load products:', err.message);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <section id="products" className="flex items-center justify-center px-6 py-24">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </section>
+    );
+  }
+
+  if (!product) return null;
+
+  const features = Array.isArray(product.features) ? product.features : [];
+  const specs = product.specs || '';
+  const stats = Array.isArray(product.stats) ? product.stats : [];
 
   return (
     <section id="products" className="px-6 py-24">
@@ -44,34 +57,39 @@ const Product = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h3 className="mb-2 font-heading text-2xl font-bold sm:text-3xl">Smart Scales</h3>
+            <h3 className="mb-2 font-heading text-2xl font-bold sm:text-3xl">{product.title}</h3>
             <p className="mb-8 text-muted-foreground">
-              Sistem penimbangan IoT industrial-grade dengan konektivitas cloud, dirancang untuk lingkungan yang membutuhkan presisi tinggi.
+              {product.description}
             </p>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {features.map((f) => (
-                <div key={f.label} className="flex gap-3 rounded-lg border border-border bg-card p-4">
-                  <f.icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">{f.label}</p>
-                    <p className="text-xs text-muted-foreground">{f.desc}</p>
+            {features.length > 0 && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {features.slice(0, 4).map((f: any, idx: number) => (
+                  <div key={`${f.title}-${idx}`} className="flex gap-3 rounded-lg border border-border bg-card p-4">
+                    <div className="mt-0.5 shrink-0 text-primary">
+                      <DynamicIcon name={f.icon || '⚡'} size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{f.title}</p>
+                      <p className="text-xs text-muted-foreground">{f.desc}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
-            <div className="mt-8 rounded-lg border border-border bg-secondary p-4 font-mono text-xs">
-              {specs.map((line, i) => (
-                <p key={i} className={i === 0 ? "text-primary" : "text-muted-foreground"}>
-                  {line}
-                </p>
-              ))}
-            </div>
+            {stats.length > 0 && (
+              <div className="mt-8 rounded-lg border border-border bg-secondary p-4 font-mono text-xs">
+                <p className="text-primary">// Technical Specifications</p>
+                {stats.map((s: any, i: number) => (
+                  <p key={i} className="text-muted-foreground">{s.label}: {s.value}</p>
+                ))}
+              </div>
+            )}
 
             <Button
               className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => navigate("/products/smart-scales")}
+              onClick={() => navigate(`/products/${product.slug}`)}
             >
               Lihat Detail Produk →
             </Button>
@@ -84,7 +102,7 @@ const Product = () => {
             transition={{ duration: 0.6 }}
             className="overflow-hidden rounded-lg border border-border bg-card"
           >
-            <img src={productImage} alt="Smart Scales IoT Device" className="h-full w-full object-cover" />
+            <img src={getImageUrl(product.image)} alt={product.title || ''} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} className="h-full w-full object-cover" />
           </motion.div>
         </div>
       </div>

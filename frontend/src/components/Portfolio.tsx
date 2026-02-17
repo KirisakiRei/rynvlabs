@@ -1,21 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { projects } from "@/data/projects";
-
-const filters = [
-  { label: "Semua", value: "all" },
-  { label: "Software", value: "software" },
-  { label: "IoT / Hardware", value: "iot" },
-  { label: "Automation", value: "automation" },
-];
+import publicApi, { getImageUrl } from "@/lib/publicApi";
 
 const Portfolio = () => {
   const [active, setActive] = useState("all");
+  const [projects, setProjects] = useState<any[]>([]);
+  const [categoryFilters, setCategoryFilters] = useState<{ label: string; value: string }[]>([{ label: 'Semua', value: 'all' }]);
   const navigate = useNavigate();
 
-  const filtered = active === "all" ? projects : projects.filter((p) => p.category === active);
+  useEffect(() => {
+    publicApi.get('/projects').then((res) => {
+      setProjects(res.data.data ?? res.data);
+    }).catch((err) => {
+      console.error('[Portfolio] Failed to load projects:', err.message);
+    });
+
+    publicApi.get('/categories').then((res) => {
+      const cats = (res.data.data ?? res.data) as any[];
+      const projectCats = cats.filter((c: any) => c.type === 'PROJECT');
+      setCategoryFilters([
+        { label: 'Semua', value: 'all' },
+        ...projectCats.map((c: any) => ({ label: c.name, value: c.slug })),
+      ]);
+    }).catch(() => {});
+  }, []);
+
+  const filtered = active === "all" ? projects : projects.filter((p) => (p.category || '').toLowerCase() === active.toLowerCase());
   const displayed = filtered.slice(0, 6);
 
   return (
@@ -32,7 +44,7 @@ const Portfolio = () => {
         </motion.h2>
 
         <div className="mb-12 flex flex-wrap justify-center gap-2">
-          {filters.map((f) => (
+          {categoryFilters.map((f) => (
             <button
               key={f.value}
               onClick={() => setActive(f.value)}
@@ -55,13 +67,14 @@ const Portfolio = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.08 }}
-              onClick={() => navigate(`/projects/${p.id}`)}
+              onClick={() => navigate(`/projects/${p.slug}`)}
               className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all duration-300 hover:border-primary"
             >
               <div className="h-48 overflow-hidden">
                 <img
-                  src={p.image}
-                  alt={p.title}
+                  src={getImageUrl(p.image)}
+                  alt={p.title || ''}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
@@ -69,7 +82,7 @@ const Portfolio = () => {
                 <h3 className="mb-2 font-heading text-lg font-semibold">{p.title}</h3>
                 <p className="mb-4 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {p.techStack.map((t) => (
+                  {(Array.isArray(p.techStack) ? p.techStack : []).map((t: string) => (
                     <span key={t} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground">
                       {t}
                     </span>

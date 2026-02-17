@@ -1,19 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { academyProjects } from "@/data/academy";
+import publicApi, { getImageUrl } from "@/lib/publicApi";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 const Academy = () => {
   const [search, setSearch] = useState("");
+  const [academyProjects, setAcademyProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    publicApi.get('/academy')
+      .then((res) => setAcademyProjects(res.data.data ?? res.data))
+      .catch((err) => {
+        console.error('[Academy] Failed to load projects:', err.message);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = academyProjects.filter(
     (p) =>
-      p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.techStack.some((t) => t.toLowerCase().includes(search.toLowerCase()))
+      (p.title || '').toLowerCase().includes(search.toLowerCase()) ||
+      (Array.isArray(p.techStack) ? p.techStack : []).some((t: string) => t.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -52,20 +63,26 @@ const Academy = () => {
             </motion.div>
 
             {/* Grid */}
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              </div>
+            ) : (
             <div className="grid gap-6 sm:grid-cols-2">
-              {filtered.map((p, i) => (
+              {filtered.map((p: any, i: number) => (
                 <motion.div
                   key={p.id}
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 + i * 0.08 }}
                   className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all duration-300 hover:border-primary"
-                  onClick={() => navigate(`/academy/${p.id}`)}
+                  onClick={() => navigate(`/academy/${p.slug}`)}
                 >
                   <div className="h-48 overflow-hidden">
                     <img
-                      src={p.image}
-                      alt={p.title}
+                      src={getImageUrl(p.image)}
+                      alt={p.title || ''}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
@@ -76,7 +93,7 @@ const Academy = () => {
                     <h3 className="mb-2 font-heading text-lg font-semibold">{p.title}</h3>
                     <p className="mb-4 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {p.techStack.map((t) => (
+                      {(Array.isArray(p.techStack) ? p.techStack : []).map((t: string) => (
                         <span key={t} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground">
                           {t}
                         </span>
@@ -89,8 +106,9 @@ const Academy = () => {
                 </motion.div>
               ))}
             </div>
+            )}
 
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <p className="text-center text-muted-foreground">Tidak ada proyek yang ditemukan.</p>
             )}
           </div>

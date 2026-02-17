@@ -1,26 +1,64 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
-import { projects } from "@/data/projects";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import publicApi, { getImageUrl } from "@/lib/publicApi";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const ProjectDetail = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
-  const project = projects.find((p) => p.id === id);
+  const [project, setProject] = useState<any>(null);
+  const [relatedProjects, setRelatedProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [modalImage, setModalImage] = useState<string | null>(null);
 
-  const relatedProjects = project
-    ? projects
-        .filter(
-          (p) =>
-            p.id !== project.id &&
-            p.techStack.some((t) => project.techStack.includes(t))
-        )
+  useEffect(() => {
+    setLoading(true);
+    publicApi.get(`/projects/${slug}`)
+      .then((res) => {
+        const data = res.data.data ?? res.data;
+        setProject(data);
+        // Fetch all projects for related
+        return publicApi.get('/projects');
+      })
+      .then((res) => {
+        const all = res.data.data ?? res.data;
+        if (project || true) {
+          // use fresh project data from closure
+        }
+        setRelatedProjects(all);
+      })
+      .catch(() => {
+        setNotFound(true);
+      })
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  // Compute related after both are loaded
+  const related = project
+    ? relatedProjects
+        .filter((p: any) => {
+          if (p.slug === project.slug) return false;
+          const ts = Array.isArray(p.techStack) ? p.techStack : [];
+          const pts = Array.isArray(project.techStack) ? project.techStack : [];
+          return ts.some((t: string) => pts.includes(t));
+        })
         .slice(0, 3)
     : [];
 
-  if (!project) {
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (notFound || !project) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
         <div className="text-center">
@@ -31,13 +69,17 @@ const ProjectDetail = () => {
     );
   }
 
+  const stats = Array.isArray(project.stats) ? project.stats : [];
+  const techStack = Array.isArray(project.techStack) ? project.techStack : [];
+  const gallery = Array.isArray(project.gallery) ? project.gallery : [];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <main className="pt-20">
         {/* Hero */}
         <div className="relative h-[50vh] min-h-[400px] overflow-hidden">
-          <img src={project.image} alt={project.title} className="h-full w-full object-cover" />
+          <img src={getImageUrl(project.image)} alt={project.title || ''} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 px-6 pb-12">
             <div className="mx-auto max-w-5xl">
@@ -64,22 +106,24 @@ const ProjectDetail = () => {
         </div>
 
         {/* Stats bar */}
-        <div className="border-y border-border bg-card">
-          <div className="mx-auto grid max-w-5xl grid-cols-2 sm:grid-cols-4">
-            {project.stats.map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.1 }}
-                className="border-r border-border p-6 text-center last:border-r-0 [&:nth-child(2)]:border-r-0 sm:[&:nth-child(2)]:border-r"
-              >
-                <p className="font-heading text-2xl font-bold text-primary">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </motion.div>
-            ))}
+        {stats.length > 0 && (
+          <div className="border-y border-border bg-card">
+            <div className="mx-auto grid max-w-5xl grid-cols-2 sm:grid-cols-4">
+              {stats.map((stat: any, i: number) => (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + i * 0.1 }}
+                  className="border-r border-border p-6 text-center last:border-r-0 [&:nth-child(2)]:border-r-0 sm:[&:nth-child(2)]:border-r"
+                >
+                  <p className="font-heading text-2xl font-bold text-primary">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Content */}
         <div className="mx-auto max-w-5xl px-6 py-16">
@@ -92,7 +136,7 @@ const ProjectDetail = () => {
               <h3 className="mb-3 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
                 Latar Belakang
               </h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{project.challenge}</p>
+              <div className="text-sm leading-relaxed text-muted-foreground" dangerouslySetInnerHTML={{ __html: project.challenge || '' }} />
             </motion.div>
 
             <motion.div
@@ -104,28 +148,28 @@ const ProjectDetail = () => {
               <h3 className="mb-3 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
                 Solusi Teknis
               </h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{project.solution}</p>
+              <div className="text-sm leading-relaxed text-muted-foreground" dangerouslySetInnerHTML={{ __html: project.solution || '' }} />
             </motion.div>
           </div>
 
           {/* Deep dive */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-12"
-          >
-            <h3 className="mb-3 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
-              Technical Deep Dive
-            </h3>
-            <div className="rounded-lg border border-border bg-secondary p-6 font-mono text-sm leading-relaxed text-muted-foreground">
-              {project.deepDive}
-            </div>
-          </motion.div>
+          {project.deepDive && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-12"
+            >
+              <h3 className="mb-3 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
+                Technical Deep Dive
+              </h3>
+              <div className="rounded-lg border border-border bg-secondary p-6 font-mono text-sm leading-relaxed text-muted-foreground" dangerouslySetInnerHTML={{ __html: project.deepDive }} />
+            </motion.div>
+          )}
 
           {/* Tech stack */}
           <div className="mt-8 flex flex-wrap gap-2">
-            {project.techStack.map((t) => (
+            {techStack.map((t: string) => (
               <span key={t} className="rounded-full bg-secondary px-4 py-1.5 text-xs text-muted-foreground">
                 {t}
               </span>
@@ -133,26 +177,45 @@ const ProjectDetail = () => {
           </div>
 
           {/* Gallery */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-16"
-          >
-            <h3 className="mb-6 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
-              Galeri
-            </h3>
-            <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
-              {project.gallery.map((img, i) => (
-                <div key={i} className="mb-4 overflow-hidden rounded-lg border border-border">
-                  <img src={img} alt={`${project.title} ${i + 1}`} className="w-full object-cover" />
-                </div>
-              ))}
-            </div>
-          </motion.div>
+          {gallery.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-16"
+            >
+              <h3 className="mb-6 font-heading text-sm font-semibold uppercase tracking-wider text-primary">
+                Galeri
+              </h3>
+              <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
+                {gallery.map((img: string, i: number) => (
+                  <div 
+                    key={i} 
+                    className="mb-4 overflow-hidden rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => setModalImage(img)}
+                  >
+                    <img src={getImageUrl(img)} alt={`${project.title} ${i + 1}`} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} className="w-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Image Modal */}
+          <Dialog open={modalImage !== null} onOpenChange={(open) => !open && setModalImage(null)}>
+            <DialogContent className="max-w-7xl w-full p-0 overflow-hidden">
+              {modalImage && (
+                <img 
+                  src={getImageUrl(modalImage)} 
+                  alt="Gallery preview" 
+                  className="w-full h-auto max-h-[90vh] object-contain"
+                />
+              )}
+            </DialogContent>
+          </Dialog>
 
           {/* Related Projects */}
-          {relatedProjects.length > 0 && (
+          {related.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -163,20 +226,21 @@ const ProjectDetail = () => {
                 Proyek Terkait
               </h3>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {relatedProjects.map((p, i) => (
+                {related.map((p: any, i: number) => (
                   <motion.div
                     key={p.id}
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: i * 0.08 }}
-                    onClick={() => navigate(`/projects/${p.id}`)}
+                    onClick={() => navigate(`/projects/${p.slug}`)}
                     className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all duration-300 hover:border-primary"
                   >
                     <div className="h-48 overflow-hidden">
                       <img
-                        src={p.image}
-                        alt={p.title}
+                        src={getImageUrl(p.image)}
+                        alt={p.title || ''}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>
@@ -184,7 +248,7 @@ const ProjectDetail = () => {
                       <h3 className="mb-2 font-heading text-lg font-semibold">{p.title}</h3>
                       <p className="mb-4 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {p.techStack.map((t) => (
+                        {(Array.isArray(p.techStack) ? p.techStack : []).map((t: string) => (
                           <span
                             key={t}
                             className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-muted-foreground"
