@@ -2,6 +2,23 @@ import { useEffect, useState } from 'react';
 import { Save, Loader2, Plus, X, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import adminApi, { getErrorMessage } from '../lib/adminApi';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface SiteSetting {
   id: number;
@@ -73,7 +90,7 @@ function isLinkArray(value: any): value is LinkItem[] {
   );
 }
 
-// ---- Link Array Editor Component ----
+// ---- Link Array Editor Component (with drag & drop) ----
 function LinkArrayEditor({
   links,
   onChange,
@@ -81,6 +98,13 @@ function LinkArrayEditor({
   links: LinkItem[];
   onChange: (links: LinkItem[]) => void;
 }) {
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const addLink = () => onChange([...links, { label: '', href: '' }]);
 
   const removeLink = (index: number) =>
@@ -92,34 +116,30 @@ function LinkArrayEditor({
     onChange(updated);
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = links.findIndex((_, idx) => `link-${idx}` === active.id);
+    const newIndex = links.findIndex((_, idx) => `link-${idx}` === over.id);
+    onChange(arrayMove(links, oldIndex, newIndex));
+  };
+
   return (
     <div className="space-y-2">
-      {links.map((link, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <GripVertical className="w-4 h-4 text-muted-foreground/40 shrink-0" />
-          <input
-            type="text"
-            value={link.label}
-            onChange={(e) => updateLink(i, 'label', e.target.value)}
-            placeholder="Label (contoh: Beranda)"
-            className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
-          />
-          <input
-            type="text"
-            value={link.href}
-            onChange={(e) => updateLink(i, 'href', e.target.value)}
-            placeholder="URL (contoh: / atau #contact)"
-            className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
-          />
-          <button
-            type="button"
-            onClick={() => removeLink(i)}
-            className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      ))}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={links.map((_, idx) => `link-${idx}`)} strategy={verticalListSortingStrategy}>
+          {links.map((link, i) => (
+            <SortableLinkItem
+              key={`link-${i}`}
+              id={`link-${i}`}
+              link={link}
+              onUpdate={(field, value) => updateLink(i, field, value)}
+              onRemove={() => removeLink(i)}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
       <button
         type="button"
         onClick={addLink}
@@ -127,6 +147,61 @@ function LinkArrayEditor({
       >
         <Plus className="w-4 h-4" />
         Tambah Link
+      </button>
+    </div>
+  );
+}
+
+// Sortable link item component
+function SortableLinkItem({
+  id,
+  link,
+  onUpdate,
+  onRemove,
+}: {
+  id: string;
+  link: LinkItem;
+  onUpdate: (field: 'label' | 'href', value: string) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="p-1 cursor-grab active:cursor-grabbing hover:bg-muted/50 rounded transition-colors shrink-0"
+      >
+        <GripVertical className="w-4 h-4 text-muted-foreground" />
+      </button>
+      <input
+        type="text"
+        value={link.label}
+        onChange={(e) => onUpdate('label', e.target.value)}
+        placeholder="Label (contoh: Beranda)"
+        className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+      />
+      <input
+        type="text"
+        value={link.href}
+        onChange={(e) => onUpdate('href', e.target.value)}
+        placeholder="URL (contoh: / atau #contact)"
+        className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+      >
+        <X className="w-4 h-4" />
       </button>
     </div>
   );

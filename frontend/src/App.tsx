@@ -11,6 +11,8 @@ import NotFound from "./pages/NotFound";
 import ProjectDetail from "./pages/ProjectDetail";
 import ProductDetail from "./pages/ProductDetail";
 import Projects from "./pages/Projects";
+import Products from "./pages/Products";
+import ContactPage from "./pages/Contact";
 import Academy from "./pages/Academy";
 import AcademyDetail from "./pages/AcademyDetail";
 
@@ -54,7 +56,9 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:slug" element={<ProjectDetail />} />
+          <Route path="/products" element={<Products />} />
           <Route path="/products/:slug" element={<ProductDetail />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/academy" element={<Academy />} />
           <Route path="/academy/:slug" element={<AcademyDetail />} />
 

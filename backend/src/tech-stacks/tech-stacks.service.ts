@@ -8,7 +8,7 @@ export class TechStacksService {
 
   async findAll() {
     return this.prisma.techStack.findMany({
-      orderBy: { name: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
   }
 

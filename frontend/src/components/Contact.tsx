@@ -1,21 +1,48 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Monitor, Cpu, Settings, FlaskConical, MessageCircle } from "lucide-react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import DynamicIcon from "@/components/DynamicIcon";
 
-const categories = [
-  { id: "web", label: "Web Development", icon: Monitor, waLabel: "Web Development" },
-  { id: "iot", label: "IoT Hardware", icon: Cpu, waLabel: "IoT Hardware" },
-  { id: "automation", label: "Automation", icon: Settings, waLabel: "Industrial Automation" },
-  { id: "academy", label: "Academy / Riset", icon: FlaskConical, waLabel: "Research & Academy" },
+interface ContactProps {
+  section?: {
+    title: string;
+    subtitle: string | null;
+    content: {
+      heading?: string;
+      description?: string;
+      categories?: Array<{
+        id: string;
+        label: string;
+        icon?: string;
+        waLabel: string;
+      }>;
+    };
+  };
+}
+
+const defaultCategories = [
+  { id: "web", label: "Web Development", icon: "Monitor", waLabel: "Web Development" },
+  { id: "iot", label: "IoT Hardware", icon: "Cpu", waLabel: "IoT Hardware" },
+  { id: "automation", label: "Automation", icon: "Settings", waLabel: "Industrial Automation" },
+  { id: "academy", label: "Academy / Riset", icon: "FlaskConical", waLabel: "Research & Academy" },
 ];
 
-const WHATSAPP_NUMBER = "6283192801660"; // Replace with actual number
-
-const Contact = () => {
+const Contact = ({ section }: ContactProps) => {
+  const { settings } = useSiteSettings();
   const [selected, setSelected] = useState<string | null>(null);
   const [name, setName] = useState("");
 
-  const selectedCategory = categories.find((c) => c.id === selected);
+  const heading = section?.content?.heading || "Mari Bangun Sesuatu";
+  const subtitle = section?.subtitle || "";
+  const description = section?.content?.description || "Konfigurasikan pertanyaan Anda dan langsung terhubung via WhatsApp.";
+  const categories = (section?.content?.categories || defaultCategories).map((cat: any, idx: number) => ({
+    ...cat,
+    _uid: cat.id || cat.label || `cat-${idx}`,
+  }));
+  const WHATSAPP_NUMBER = settings.wa_number;
+
+  const selectedCategory = categories.find((c: any) => c._uid === selected);
 
   const messagePreview = selected
     ? `Halo rynvlabs, saya${name ? ` ${name}` : ""} tertarik diskusi tentang *${selectedCategory?.waLabel}*. Bisakah kita membahas lebih lanjut?`
@@ -35,16 +62,27 @@ const Contact = () => {
           transition={{ duration: 0.6 }}
           className="mb-4 text-center font-heading text-3xl font-bold sm:text-4xl"
         >
-          Mari Bangun Sesuatu
+          {heading}
         </motion.h2>
+        {subtitle && (
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="mb-4 text-center text-muted-foreground"
+          >
+            {subtitle}
+          </motion.p>
+        )}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="mb-12 text-center text-muted-foreground"
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="mb-12 text-center text-sm text-muted-foreground"
         >
-          Konfigurasikan pertanyaan Anda dan langsung terhubung via WhatsApp.
+          {description}
         </motion.p>
 
         {/* Name input */}
@@ -71,20 +109,28 @@ const Contact = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4"
         >
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelected(cat.id)}
-              className={`flex flex-col items-center gap-2 rounded-lg border p-5 transition-all duration-200 ${
-                selected === cat.id
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
-              }`}
-            >
-              <cat.icon className={`h-6 w-6 ${selected === cat.id ? "text-primary" : ""}`} />
-              <span className="text-xs font-medium text-center">{cat.label}</span>
-            </button>
-          ))}
+          {categories.map((cat: any) => {
+            const hasIcon = typeof cat.icon === 'string';
+            return (
+              <button
+                key={cat._uid}
+                onClick={() => setSelected(selected === cat._uid ? null : cat._uid)}
+                className={`flex flex-col items-center gap-2 rounded-lg border p-5 transition-all duration-200 ${
+                  selected === cat._uid
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                }`}
+              >
+                {hasIcon ? (
+                  <DynamicIcon 
+                    name={cat.icon} 
+                    className={`h-6 w-6 ${selected === cat._uid ? "text-primary" : ""}`} 
+                  />
+                ) : null}
+                <span className="text-xs font-medium text-center">{cat.label}</span>
+              </button>
+            );
+          })}
         </motion.div>
 
         {/* Message preview */}

@@ -2,19 +2,15 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-
-const navLinks = [
-  { label: "Layanan", href: "/#services" },
-  { label: "Produk", href: "/#products" },
-  { label: "Project", href: "/projects" },
-  { label: "Academy", href: "/academy" },
-  { label: "Kontak", href: "/#contact" },
-];
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { settings } = useSiteSettings();
+  
+  const navLinks = settings.nav_links;
 
   const handleNav = (href: string) => {
     setMobileOpen(false);
@@ -34,7 +30,7 @@ const Navbar = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link to="/" className="font-heading text-xl font-bold tracking-tight text-foreground">
-          rynvlabs
+          {settings.brand_name}
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">
@@ -50,7 +46,7 @@ const Navbar = () => {
           <Button
             variant="outline"
             className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-            onClick={() => handleNav("/#contact")}
+            onClick={() => handleNav("/contact")}
           >
             Konsultasi
           </Button>
@@ -79,7 +75,7 @@ const Navbar = () => {
           <Button
             variant="outline"
             className="mt-2 w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-            onClick={() => handleNav("/#contact")}
+            onClick={() => handleNav("/contact")}
           >
             Konsultasi
           </Button>

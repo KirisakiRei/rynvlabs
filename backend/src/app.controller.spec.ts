@@ -15,8 +15,21 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return API info', () => {
+      const result = appController.getApiInfo();
+      expect(result).toHaveProperty('name');
+      expect(result).toHaveProperty('version');
+      expect(result).toHaveProperty('endpoints');
+      expect(result.name).toBe('rynvlabs CMS API');
+    });
+  });
+
+  describe('health', () => {
+    it('should return health status', () => {
+      const result = appController.getHealth();
+      expect(result).toHaveProperty('status');
+      expect(result.status).toBe('ok');
+      expect(result).toHaveProperty('timestamp');
     });
   });
 });

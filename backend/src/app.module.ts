@@ -10,6 +10,8 @@ import { TechStacksModule } from './tech-stacks/tech-stacks.module';
 import { LandingSectionsModule } from './landing-sections/landing-sections.module';
 import { SiteSettingsModule } from './site-settings/site-settings.module';
 import { MediaModule } from './media/media.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -25,5 +27,7 @@ import { MediaModule } from './media/media.module';
     SiteSettingsModule,
     MediaModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

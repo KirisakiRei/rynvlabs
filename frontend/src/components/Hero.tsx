@@ -2,11 +2,37 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-const Hero = () => {
+interface HeroProps {
+  section?: {
+    title: string;
+    subtitle: string | null;
+    content: {
+      ctaPrimary?: { text: string; link: string };
+      ctaSecondary?: { text: string; link: string };
+    };
+  };
+}
+
+const Hero = ({ section }: HeroProps) => {
   const navigate = useNavigate();
 
+  // Use section data or fallback to defaults
+  const title = section?.title || "Menjembatani Logika Digital\ndengan Realitas Fisik";
+  const subtitle = section?.subtitle || "Spesialis dalam High-Performance Software, IoT Solutions, dan Industrial Automation.";
+  const ctaPrimary = section?.content?.ctaPrimary || { text: "Jelajahi Solusi", link: "#services" };
+  const ctaSecondary = section?.content?.ctaSecondary || { text: "Research Academy", link: "/academy" };
+
   const scrollTo = (href: string) => {
-    document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+    if (href.startsWith("#")) {
+      document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+    } else if (href.startsWith("/#")) {
+      navigate("/");
+      setTimeout(() => {
+        document.querySelector(href.substring(1))?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    } else {
+      navigate(href);
+    }
   };
 
   return (
@@ -35,9 +61,12 @@ const Hero = () => {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="font-heading text-4xl font-bold leading-tight tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
         >
-          Menjembatani Logika Digital
-          <br />
-          dengan Realitas Fisik
+          {title.split("\n").map((line, i) => (
+            <span key={i}>
+              {line}
+              {i < title.split("\n").length - 1 && <br />}
+            </span>
+          ))}
         </motion.h1>
 
         <motion.p
@@ -46,7 +75,7 @@ const Hero = () => {
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
           className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl"
         >
-          Spesialis dalam High-Performance Software, IoT Solutions, dan Industrial Automation.
+          {subtitle}
         </motion.p>
 
         <motion.div
@@ -58,17 +87,17 @@ const Hero = () => {
           <Button
             size="lg"
             className="bg-primary px-8 py-6 text-base font-semibold text-primary-foreground hover:bg-primary/90"
-            onClick={() => scrollTo("#services")}
+            onClick={() => scrollTo(ctaPrimary.link)}
           >
-            Jelajahi Solusi
+            {ctaPrimary.text}
           </Button>
           <Button
             size="lg"
             variant="outline"
             className="border-primary px-8 py-6 text-base font-semibold text-primary hover:bg-primary hover:text-primary-foreground"
-            onClick={() => navigate("/academy")}
+            onClick={() => scrollTo(ctaSecondary.link)}
           >
-            Research Academy
+            {ctaSecondary.text}
           </Button>
         </motion.div>
       </div>

@@ -58,11 +58,11 @@ const Index = () => {
     const key = section.id || section.sectionKey;
     switch (section.sectionKey) {
       case "hero":
-        return <Hero key={key} />;
+        return <Hero key={key} section={section} />;
       case "tech-ticker":
-        return <TechTicker key={key} />;
+        return <TechTicker key={key} section={section} />;
       case "services":
-        return <Services key={key} />;
+        return <Services key={key} section={section} />;
       case "product":
         return <Product key={key} />;
       case "portfolio":
@@ -70,9 +70,9 @@ const Index = () => {
       case "academy":
         return <AcademyShowcase key={key} />;
       case "process":
-        return <Process key={key} />;
+        return <Process key={key} section={section} />;
       case "contact":
-        return <Contact key={key} />;
+        return <Contact key={key} section={section} />;
       default:
         return null;
     }

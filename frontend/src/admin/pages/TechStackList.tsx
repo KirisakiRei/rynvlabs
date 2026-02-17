@@ -89,48 +89,12 @@ export default function TechStackList() {
     }
   };
 
-  const columns = [
-    {
-      key: 'name',
-      header: 'Nama',
-      render: (item: TechStack) => (
-        <div className="flex items-center gap-2">
-          {item.color && (
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-          )}
-          <span className="font-medium">{item.name}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'actions',
-      header: '',
-      className: 'text-right',
-      render: (item: TechStack) => (
-        <div className="flex items-center justify-end gap-1">
-          <button
-            onClick={() => openEdit(item)}
-            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setDeleteId(item.id)}
-            className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-heading font-bold text-foreground">Tech Stack</h1>
-          <p className="text-muted-foreground text-sm mt-1">Kelola master data tech stack</p>
+          <p className="text-muted-foreground text-sm mt-1">Kelola master data tech stack.</p>
         </div>
         <button
           onClick={openCreate}
@@ -141,7 +105,60 @@ export default function TechStackList() {
         </button>
       </div>
 
-      <DataTable columns={columns} data={items} loading={loading} emptyMessage="Belum ada tech stack" />
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        </div>
+      ) : (
+        <DataTable
+          columns={[
+            { 
+              key: 'name',
+              header: 'Nama',
+              render: (item: TechStack) => (
+                <span className="font-medium">{item.name}</span>
+              )
+            },
+            {
+              key: 'color',
+              header: 'Warna',
+              render: (item: TechStack) =>
+                item.color ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: item.color }} />
+                    <span className="text-xs text-muted-foreground">{item.color}</span>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-xs">-</span>
+                ),
+            },
+            {
+              key: 'actions',
+              header: 'Aksi',
+              className: 'text-right',
+              render: (item: TechStack) => (
+                <div className="flex items-center justify-end gap-1">
+                  <button
+                    onClick={() => openEdit(item)}
+                    className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setDeleteId(item.id)}
+                    className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                    title="Hapus"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          data={items}
+        />
+      )}
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

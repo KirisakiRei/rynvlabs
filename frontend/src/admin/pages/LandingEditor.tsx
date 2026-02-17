@@ -7,6 +7,23 @@ import TipTapEditor from '../components/TipTapEditor';
 import ConfirmDialog from '../components/ConfirmDialog';
 import IconPicker from '../components/IconPicker';
 import DynamicIcon from '@/components/DynamicIcon';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface LandingSection {
   id: number;
@@ -99,6 +116,138 @@ function ArrayEditor({ items, onChange, fields }: ArrayEditorProps) {
   );
 }
 
+// Draggable array editor for objects
+function DraggableArrayEditor({ items, onChange, fields }: ArrayEditorProps) {
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const addItem = () => {
+    const newItem: ArrayItem = {};
+    fields.forEach((f) => (newItem[f.key] = ''));
+    onChange([...items, newItem]);
+  };
+
+  const removeItem = (index: number) => {
+    onChange(items.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, key: string, value: string) => {
+    const updated = [...items];
+    updated[index] = { ...updated[index], [key]: value };
+    onChange(updated);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex((_, idx) => `item-${idx}` === active.id);
+    const newIndex = items.findIndex((_, idx) => `item-${idx}` === over.id);
+    onChange(arrayMove(items, oldIndex, newIndex));
+  };
+
+  return (
+    <div className="space-y-3">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={items.map((_, idx) => `item-${idx}`)} strategy={verticalListSortingStrategy}>
+          {items.map((item, idx) => (
+            <SortableObjectItem
+              key={`item-${idx}`}
+              id={`item-${idx}`}
+              item={item}
+              fields={fields}
+              onUpdate={(key, value) => updateItem(idx, key, value)}
+              onRemove={() => removeItem(idx)}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+      <button
+        type="button"
+        onClick={addItem}
+        className="flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors border border-dashed border-primary/50"
+      >
+        <Plus className="w-4 h-4" />
+        Tambah Item
+      </button>
+    </div>
+  );
+}
+
+// Sortable object item component
+function SortableObjectItem({
+  id,
+  item,
+  fields,
+  onUpdate,
+  onRemove,
+}: {
+  id: string;
+  item: ArrayItem;
+  fields: { key: string; label: string; type?: 'text' | 'textarea' }[];
+  onUpdate: (key: string, value: string) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="border border-border rounded-lg p-3 bg-muted/30">
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="p-1 cursor-grab active:cursor-grabbing hover:bg-muted/50 rounded transition-colors flex-shrink-0 mt-2"
+        >
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
+        </button>
+        <div className="flex-1 space-y-2">
+          {fields.map((field) => (
+            <div key={field.key}>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                {field.label}
+              </label>
+              {field.type === 'textarea' ? (
+                <textarea
+                  value={item[field.key] || ''}
+                  onChange={(e) => onUpdate(field.key, e.target.value)}
+                  rows={2}
+                  className="w-full px-2 py-1.5 bg-background border border-border rounded text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-y"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={item[field.key] || ''}
+                  onChange={(e) => onUpdate(field.key, e.target.value)}
+                  className="w-full px-2 py-1.5 bg-background border border-border rounded text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1.5 text-red-400 hover:bg-red-500/10 rounded transition-colors flex-shrink-0 mt-1"
+          title="Hapus"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Simple string array editor
 function SimpleArrayEditor({ items, onChange }: { items: string[]; onChange: (items: string[]) => void }) {
   const addItem = () => onChange([...items, '']);
@@ -137,6 +286,107 @@ function SimpleArrayEditor({ items, onChange }: { items: string[]; onChange: (it
       >
         <Plus className="w-4 h-4" />
         Tambah Item
+      </button>
+    </div>
+  );
+}
+
+// Draggable string array editor
+function DraggableStringArrayEditor({ items, onChange }: { items: string[]; onChange: (items: string[]) => void }) {
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const addItem = () => onChange([...items, '']);
+  const removeItem = (index: number) => onChange(items.filter((_, i) => i !== index));
+  const updateItem = (index: number, value: string) => {
+    const updated = [...items];
+    updated[index] = value;
+    onChange(updated);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex((_, idx) => `item-${idx}` === active.id);
+    const newIndex = items.findIndex((_, idx) => `item-${idx}` === over.id);
+    onChange(arrayMove(items, oldIndex, newIndex));
+  };
+
+  return (
+    <div className="space-y-2">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={items.map((_, idx) => `item-${idx}`)} strategy={verticalListSortingStrategy}>
+          {items.map((item, idx) => (
+            <SortableStringItem
+              key={`item-${idx}`}
+              id={`item-${idx}`}
+              value={item}
+              onUpdate={(value) => updateItem(idx, value)}
+              onRemove={() => removeItem(idx)}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+      <button
+        type="button"
+        onClick={addItem}
+        className="flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary/10 rounded-lg transition-colors border border-dashed border-primary/50 w-full"
+      >
+        <Plus className="w-4 h-4" />
+        Tambah Item
+      </button>
+    </div>
+  );
+}
+
+// Sortable string item component
+function SortableStringItem({
+  id,
+  value,
+  onUpdate,
+  onRemove,
+}: {
+  id: string;
+  value: string;
+  onUpdate: (value: string) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="p-1 cursor-grab active:cursor-grabbing hover:bg-muted/50 rounded transition-colors flex-shrink-0"
+      >
+        <GripVertical className="w-4 h-4 text-muted-foreground" />
+      </button>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onUpdate(e.target.value)}
+        className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="p-2 text-red-400 hover:bg-red-500/10 rounded transition-colors flex-shrink-0"
+        title="Hapus"
+      >
+        <Trash2 className="w-4 h-4" />
       </button>
     </div>
   );
@@ -297,9 +547,18 @@ export default function LandingEditor() {
                             };
                             updateContent({ items });
                           }}
+                          onKeyDown={(e) => {
+                            // Allow comma key
+                            if (e.key === ',') {
+                              e.stopPropagation();
+                            }
+                          }}
                           placeholder="React, Laravel, Node.js"
                           className="w-full px-2 py-1.5 bg-background border border-border rounded text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
                         />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Pisahkan dengan <span className="font-mono bg-muted px-1 rounded">,</span> (koma) untuk multiple tags
+                        </p>
                       </div>
                     </div>
                     <button
@@ -403,7 +662,7 @@ export default function LandingEditor() {
         return (
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Process Steps</label>
-            <ArrayEditor
+            <DraggableArrayEditor
               items={section.content?.steps || []}
               onChange={(steps) => updateContent({ steps })}
               fields={[
@@ -419,7 +678,7 @@ export default function LandingEditor() {
         return (
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Tech Stack Items</label>
-            <SimpleArrayEditor
+            <DraggableStringArrayEditor
               items={section.content?.items || []}
               onChange={(items) => updateContent({ items })}
             />
@@ -430,7 +689,7 @@ export default function LandingEditor() {
         return (
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Contact Categories</label>
-            <ArrayEditor
+            <DraggableArrayEditor
               items={section.content?.categories || []}
               onChange={(categories) => updateContent({ categories })}
               fields={[

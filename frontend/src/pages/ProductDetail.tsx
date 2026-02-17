@@ -53,7 +53,7 @@ const ProductDetail = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 px-6 pb-12">
             <div className="mx-auto max-w-5xl">
-              <Link to="/#products" className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <Link to="/products" className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
                 <ArrowLeft className="h-4 w-4" /> Kembali
               </Link>
               <motion.h1
